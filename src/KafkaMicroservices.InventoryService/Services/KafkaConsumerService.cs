@@ -75,21 +75,38 @@ public class KafkaConsumerService : IKafkaConsumer<BaseEvent>, IDisposable
                         _logger.LogInformation("Received message from topic {Topic}: Key={Key}, Value={Value}", 
                             consumeResult.Topic, consumeResult.Message.Key, consumeResult.Message.Value);
                         
-                        // Deserialize the base event to get the event type
-                        var baseEvent = JsonSerializer.Deserialize<BaseEvent>(consumeResult.Message.Value, _jsonOptions);
-                        if (baseEvent != null)
+                        // For order-created topic, deserialize directly to OrderCreatedEvent
+                        if (consumeResult.Topic == "order-created")
                         {
-                            // Based on event type, deserialize to specific event type
-                            BaseEvent specificEvent = baseEvent.EventType switch
+                            var orderEvent = JsonSerializer.Deserialize<OrderCreatedEvent>(consumeResult.Message.Value, _jsonOptions);
+                            if (orderEvent != null)
                             {
-                                "OrderCreatedEvent" => JsonSerializer.Deserialize<OrderCreatedEvent>(consumeResult.Message.Value, _jsonOptions) ?? baseEvent,
-                                "InventoryReservedEvent" => JsonSerializer.Deserialize<InventoryReservedEvent>(consumeResult.Message.Value, _jsonOptions) ?? baseEvent,
-                                _ => baseEvent
-                            };
+                                await messageHandler(orderEvent);
+                                consumer.Commit(consumeResult);
+                                _logger.LogDebug("OrderCreatedEvent processed and committed for topic {Topic}", consumeResult.Topic);
+                            }
+                        }
+                        else
+                        {
+                            // For other topics, try to determine the event type first
+                            var eventTypeDocument = JsonDocument.Parse(consumeResult.Message.Value);
+                            if (eventTypeDocument.RootElement.TryGetProperty("eventType", out var eventTypeElement))
+                            {
+                                var eventType = eventTypeElement.GetString();
+                                BaseEvent? specificEvent = eventType switch
+                                {
+                                    "OrderCreatedEvent" => JsonSerializer.Deserialize<OrderCreatedEvent>(consumeResult.Message.Value, _jsonOptions),
+                                    "InventoryReservedEvent" => JsonSerializer.Deserialize<InventoryReservedEvent>(consumeResult.Message.Value, _jsonOptions),
+                                    _ => null
+                                };
 
-                            await messageHandler(specificEvent);
-                            consumer.Commit(consumeResult);
-                            _logger.LogDebug("Message processed and committed for topic {Topic}", consumeResult.Topic);
+                                if (specificEvent != null)
+                                {
+                                    await messageHandler(specificEvent);
+                                    consumer.Commit(consumeResult);
+                                    _logger.LogDebug("Message processed and committed for topic {Topic}", consumeResult.Topic);
+                                }
+                            }
                         }
                     }
                 }

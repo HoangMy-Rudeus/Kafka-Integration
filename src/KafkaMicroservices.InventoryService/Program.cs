@@ -31,6 +31,7 @@ builder.Services.AddSingleton(kafkaSettings);
 // Register services
 builder.Services.AddScoped<IInventoryService, KafkaMicroservices.InventoryService.Services.InventoryService>(); // Changed back to Scoped for EF
 builder.Services.AddSingleton<IKafkaConsumer<BaseEvent>, KafkaConsumerService>();
+builder.Services.AddSingleton<IKafkaProducer<BaseEvent>, InventoryKafkaProducerService>();
 builder.Services.AddHostedService<OrderEventHandler>();
 
 var app = builder.Build();

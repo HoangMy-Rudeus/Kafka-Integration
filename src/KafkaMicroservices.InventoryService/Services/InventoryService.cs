@@ -1,6 +1,7 @@
 using KafkaMicroservices.InventoryService.Data;
 using KafkaMicroservices.Shared.Events;
 using KafkaMicroservices.Shared.Models;
+using KafkaMicroservices.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace KafkaMicroservices.InventoryService.Services;
@@ -16,11 +17,13 @@ public class InventoryService : IInventoryService
 {
     private readonly ILogger<InventoryService> _logger;
     private readonly InventoryDbContext _context;
+    private readonly IKafkaProducer<BaseEvent> _kafkaProducer;
 
-    public InventoryService(ILogger<InventoryService> logger, InventoryDbContext context)
+    public InventoryService(ILogger<InventoryService> logger, InventoryDbContext context, IKafkaProducer<BaseEvent> kafkaProducer)
     {
         _logger = logger;
         _context = context;
+        _kafkaProducer = kafkaProducer;
     }
 
     public async Task<bool> ReserveInventoryAsync(Guid orderId, List<OrderItem> items)
@@ -66,6 +69,32 @@ public class InventoryService : IInventoryService
             }
 
             await _context.SaveChangesAsync();
+            
+            // Publish inventory reserved event
+            var inventoryReservedEvent = new InventoryReservedEvent
+            {
+                EventId = Guid.NewGuid(),
+                Timestamp = DateTime.UtcNow,
+                OrderId = orderId,
+                ReservedItems = items.Select(item => new ReservedItem
+                {
+                    ProductId = item.ProductId,
+                    QuantityReserved = item.Quantity
+                }).ToList()
+            };
+
+            try
+            {
+                await _kafkaProducer.ProduceAsync("inventory-reserved", inventoryReservedEvent);
+                _logger.LogInformation("Published inventory reserved event for order {OrderId}", orderId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish inventory reserved event for order {OrderId}", orderId);
+                // Note: We don't throw here to avoid rolling back the database transaction
+                // In a production system, you might want to implement a reliable outbox pattern
+            }
+
             _logger.LogInformation("Successfully reserved inventory for order {OrderId}", orderId);
             return true;
         }
