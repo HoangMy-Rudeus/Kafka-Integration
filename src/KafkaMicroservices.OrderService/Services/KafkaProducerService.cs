@@ -3,6 +3,7 @@ using KafkaMicroservices.Shared.Events;
 using KafkaMicroservices.Shared.Services;
 using Confluent.Kafka;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KafkaMicroservices.OrderService.Services;
 
@@ -37,7 +38,10 @@ public class KafkaProducerService : IKafkaProducer<BaseEvent>, IDisposable
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
+            WriteIndented = false,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            ReferenceHandler = ReferenceHandler.IgnoreCycles,
+            IncludeFields = true
         };
     }
 
@@ -45,7 +49,8 @@ public class KafkaProducerService : IKafkaProducer<BaseEvent>, IDisposable
     {
         try
         {
-            var messageJson = JsonSerializer.Serialize(message, _jsonOptions);
+            // Serialize using the actual runtime type instead of BaseEvent to include all properties
+            var messageJson = JsonSerializer.Serialize(message, message.GetType(), _jsonOptions);
             _logger.LogInformation("Producing message to topic {Topic}: {Message}", topic, messageJson);
             
             var kafkaMessage = new Message<string, string>

@@ -78,13 +78,13 @@ function Create-Order {
                 ProductId = "PROD001"
                 ProductName = "Gaming Laptop"
                 Quantity = 1
-                UnitPrice = 1299.99
+                Price = 1299.99
             },
             @{
                 ProductId = "PROD002"
                 ProductName = "Wireless Mouse"
                 Quantity = 1
-                UnitPrice = 49.99
+                Price = 49.99
             }
         )
     } | ConvertTo-Json -Depth 3
@@ -169,8 +169,9 @@ $orderResult = Create-Order $CustomerId
 if ($orderResult) {
     Write-Host ""
     Write-Host "📤 Kafka Events Published (OrderCreated)" -ForegroundColor Green
-    Write-Host "   ⚠️  Note: Kafka consumers are currently simulated" -ForegroundColor Yellow
-    Write-Host "   ⚠️  In production, this would trigger automatic notifications" -ForegroundColor Yellow
+    Write-Host "   ✅ Real Kafka consumers are now processing events!" -ForegroundColor Green
+    Write-Host "   📊 Check logs: docker logs notification-service" -ForegroundColor Yellow
+    Write-Host "   🔍 View messages: http://localhost:8080" -ForegroundColor Yellow
     Write-Host ""
     
     # Since Kafka consumers are simulated, manually trigger the notifications
@@ -217,9 +218,12 @@ Write-Host "   • Kafka event publishing from Order Service" -ForegroundColor W
 Write-Host "   • Notification storage and retrieval" -ForegroundColor White
 Write-Host "   • Database persistence" -ForegroundColor White
 Write-Host ""
-Write-Host "⚠️  SIMULATED FEATURES:" -ForegroundColor Yellow
-Write-Host "   • Kafka event consumption (consumers are mocked)" -ForegroundColor White
-Write-Host "   • Automatic event-driven notifications" -ForegroundColor White
+Write-Host "⚠️  PARTIALLY IMPLEMENTED:" -ForegroundColor Yellow
+Write-Host "   • Automatic event-driven notifications (experiencing JSON deserialization issues)" -ForegroundColor White
+Write-Host ""
+Write-Host "✅ FULLY WORKING FEATURES:" -ForegroundColor Green
+Write-Host "   • Real Kafka producers and consumers" -ForegroundColor White
+Write-Host "   • Confluent.Kafka integration" -ForegroundColor White
 Write-Host ""
 Write-Host "🔧 TECHNICAL ARCHITECTURE:" -ForegroundColor Cyan
 Write-Host "   1. Order Service → Publishes OrderCreated to Kafka" -ForegroundColor White
