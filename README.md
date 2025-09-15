@@ -239,7 +239,7 @@ Error: Unable to bind to port
 
 **Symptom:** Docker build fails
 
-```
+```text
 Error: Unable to restore packages
 ```
 
