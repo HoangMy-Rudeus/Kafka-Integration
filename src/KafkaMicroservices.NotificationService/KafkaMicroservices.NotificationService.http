@@ -1,0 +1,6 @@
+@KafkaMicroservices.NotificationService_HostAddress = http://localhost:5270
+
+GET {{KafkaMicroservices.NotificationService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

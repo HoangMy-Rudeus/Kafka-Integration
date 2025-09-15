@@ -1,0 +1,6 @@
+@KafkaMicroservices.InventoryService_HostAddress = http://localhost:5029
+
+GET {{KafkaMicroservices.InventoryService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
