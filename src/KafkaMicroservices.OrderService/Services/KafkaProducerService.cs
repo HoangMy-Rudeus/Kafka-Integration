@@ -1,6 +1,7 @@
 using KafkaMicroservices.Shared.Configuration;
 using KafkaMicroservices.Shared.Events;
 using KafkaMicroservices.Shared.Services;
+using Confluent.Kafka;
 using System.Text.Json;
 
 namespace KafkaMicroservices.OrderService.Services;
@@ -9,26 +10,59 @@ public class KafkaProducerService : IKafkaProducer<BaseEvent>, IDisposable
 {
     private readonly ILogger<KafkaProducerService> _logger;
     private readonly KafkaSettings _kafkaSettings;
-    // Note: Will implement Kafka producer when packages are available
+    private readonly IProducer<string, string> _producer;
+    private readonly JsonSerializerOptions _jsonOptions;
 
     public KafkaProducerService(ILogger<KafkaProducerService> logger, KafkaSettings kafkaSettings)
     {
         _logger = logger;
         _kafkaSettings = kafkaSettings;
+
+        var config = new ProducerConfig
+        {
+            BootstrapServers = kafkaSettings.BootstrapServers,
+            ClientId = Environment.MachineName,
+            Acks = Acks.Leader,
+            MessageTimeoutMs = 30000,
+            CompressionType = CompressionType.Snappy
+        };
+
+        _producer = new ProducerBuilder<string, string>(config)
+            .SetErrorHandler((_, error) =>
+            {
+                _logger.LogError("Kafka Producer Error: {ErrorReason}", error.Reason);
+            })
+            .Build();
+
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        };
     }
 
     public async Task ProduceAsync(string topic, BaseEvent message, CancellationToken cancellationToken = default)
     {
         try
         {
-            var messageJson = MessageSerializer.Serialize(message);
+            var messageJson = JsonSerializer.Serialize(message, _jsonOptions);
             _logger.LogInformation("Producing message to topic {Topic}: {Message}", topic, messageJson);
             
-            // TODO: Implement actual Kafka producer when Confluent.Kafka package is available
-            // For now, just log the message
-            _logger.LogInformation("Message would be sent to Kafka topic: {Topic}", topic);
-            
-            await Task.Delay(100, cancellationToken); // Simulate async operation
+            var kafkaMessage = new Message<string, string>
+            {
+                Key = message.EventId.ToString(),
+                Value = messageJson,
+                Timestamp = new Timestamp(message.Timestamp)
+            };
+
+            var deliveryResult = await _producer.ProduceAsync(topic, kafkaMessage, cancellationToken);
+            _logger.LogInformation("Message delivered to topic {Topic}, partition {Partition}, offset {Offset}", 
+                deliveryResult.Topic, deliveryResult.Partition, deliveryResult.Offset);
+        }
+        catch (ProduceException<string, string> ex)
+        {
+            _logger.LogError(ex, "Failed to deliver message to topic {Topic}: {ErrorReason}", topic, ex.Error.Reason);
+            throw;
         }
         catch (Exception ex)
         {
@@ -39,6 +73,7 @@ public class KafkaProducerService : IKafkaProducer<BaseEvent>, IDisposable
 
     public void Dispose()
     {
-        // TODO: Dispose Kafka producer
+        _producer?.Flush(TimeSpan.FromSeconds(10));
+        _producer?.Dispose();
     }
 }
