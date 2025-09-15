@@ -1,23 +1,27 @@
+using KafkaMicroservices.OrderService.Data;
 using KafkaMicroservices.Shared.Events;
 using KafkaMicroservices.Shared.Models;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace KafkaMicroservices.OrderService.Services;
 
 public interface IOrderService
 {
     Task<Order> CreateOrderAsync(CreateOrderRequest request);
-    Task<Order?> GetOrderAsync(Guid orderId);
+    Task<Order?> GetOrderAsync(Guid id);
     Task<IEnumerable<Order>> GetOrdersAsync();
 }
 
 public class OrderService : IOrderService
 {
     private readonly ILogger<OrderService> _logger;
-    private readonly List<Order> _orders = new(); // In-memory storage for demo
+    private readonly OrderDbContext _context;
 
-    public OrderService(ILogger<OrderService> logger)
+    public OrderService(ILogger<OrderService> logger, OrderDbContext context)
     {
         _logger = logger;
+        _context = context;
     }
 
     public async Task<Order> CreateOrderAsync(CreateOrderRequest request)
@@ -26,46 +30,48 @@ public class OrderService : IOrderService
         {
             Id = Guid.NewGuid(),
             CustomerId = request.CustomerId,
-            Items = request.Items.Select(item => new OrderItem
-            {
-                ProductId = item.ProductId,
-                ProductName = item.ProductName,
-                Quantity = item.Quantity,
-                Price = item.Price
-            }).ToList(),
+            Items = request.Items,
             TotalAmount = request.Items.Sum(item => item.Price * item.Quantity),
             CreatedAt = DateTime.UtcNow,
             Status = OrderStatus.Pending
         };
 
-        _orders.Add(order);
-        _logger.LogInformation("Created order {OrderId} for customer {CustomerId}", order.Id, order.CustomerId);
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
+        
+        _logger.LogInformation("Order {OrderId} created for customer {CustomerId} with total amount {TotalAmount}", 
+            order.Id, order.CustomerId, order.TotalAmount);
 
-        return await Task.FromResult(order);
+        return order;
     }
 
-    public async Task<Order?> GetOrderAsync(Guid orderId)
+    public async Task<Order?> GetOrderAsync(Guid id)
     {
-        var order = _orders.FirstOrDefault(o => o.Id == orderId);
-        return await Task.FromResult(order);
+        var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id);
+        return order;
     }
 
     public async Task<IEnumerable<Order>> GetOrdersAsync()
     {
-        return await Task.FromResult(_orders.AsEnumerable());
+        return await _context.Orders.ToListAsync();
     }
 }
 
+/// <summary>
+/// Request model for creating a new order
+/// </summary>
 public class CreateOrderRequest
 {
+    /// <summary>
+    /// Customer ID placing the order
+    /// </summary>
+    [Required(ErrorMessage = "Customer ID is required")]
     public string CustomerId { get; set; } = string.Empty;
-    public List<CreateOrderItem> Items { get; set; } = new();
-}
-
-public class CreateOrderItem
-{
-    public string ProductId { get; set; } = string.Empty;
-    public string ProductName { get; set; } = string.Empty;
-    public int Quantity { get; set; }
-    public decimal Price { get; set; }
+    
+    /// <summary>
+    /// List of items in the order
+    /// </summary>
+    [Required(ErrorMessage = "Items are required")]
+    [MinLength(1, ErrorMessage = "At least one item is required")]
+    public List<OrderItem> Items { get; set; } = new();
 }

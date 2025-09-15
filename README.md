@@ -1,6 +1,6 @@
 # Kafka Microservices Demo
 
-A comprehensive demonstration of microservices architecture using Apache Kafka as a message broker, built with .NET 8 and Docker.
+A comprehensive demonstration of microservices architecture using Apache Kafka as a message broker, built with .NET 9 and Docker.
 
 ## 🏗️ Architecture Overview
 
@@ -47,17 +47,19 @@ This project demonstrates a real-world microservices architecture with the follo
 ### Prerequisites
 
 - Docker Desktop
-- .NET 8 SDK (for local development)
+- .NET 9 SDK (for local development)
 - PowerShell or Bash terminal
 
 ### Running with Docker
 
 1. **Clone and navigate to the project:**
+
    ```powershell
    cd d:\entertainment\kafka
    ```
 
 2. **Start the entire system:**
+
    ```powershell
    docker-compose up --build
    ```
@@ -69,19 +71,26 @@ This project demonstrates a real-world microservices architecture with the follo
    - All three microservices
 
 3. **Verify services are running:**
-   - Kafka UI: http://localhost:8080
-   - Order Service: http://localhost:5001
-   - Inventory Service: http://localhost:5002
-   - Notification Service: http://localhost:5003
+   - Kafka UI: <http://localhost:8080>
+   - Order Service API: <http://localhost:5001>
+   - Inventory Service API: <http://localhost:5002>
+   - Notification Service API: <http://localhost:5003>
+
+4. **Access Swagger Documentation:**
+   - Order Service: <http://localhost:5001/swagger>
+   - Inventory Service: <http://localhost:5002/swagger>
+   - Notification Service: <http://localhost:5003/swagger>
 
 ### Running Locally (Development)
 
 1. **Start Kafka infrastructure only:**
+
    ```powershell
    docker-compose up -d zookeeper kafka kafka-ui
    ```
 
 2. **Run services locally:**
+
    ```powershell
    # Terminal 1 - Order Service
    cd src/KafkaMicroservices.OrderService
@@ -101,6 +110,7 @@ This project demonstrates a real-world microservices architecture with the follo
 ### Scenario 1: Create an Order
 
 1. **Create a new order:**
+
    ```powershell
    $body = @{
        CustomerId = "CUST001"
@@ -165,8 +175,9 @@ d:\entertainment\kafka\
 
 ### Key Technologies
 
-- **.NET 8**: Latest LTS version of .NET
-- **ASP.NET Core**: Web API framework
+- **.NET 9**: Latest version of .NET
+- **ASP.NET Core**: Web API framework  
+- **Swagger/OpenAPI**: API documentation and testing
 - **Apache Kafka**: Message broker
 - **Docker**: Containerization
 - **Confluent.Kafka**: .NET Kafka client library
@@ -174,16 +185,19 @@ d:\entertainment\kafka\
 ### Message Flow
 
 1. **Order Creation:**
+
    ```
    HTTP POST → Order Service → OrderCreatedEvent → Kafka Topic: order-created
    ```
 
 2. **Inventory Processing:**
+
    ```
    Kafka Topic: order-created → Inventory Service → InventoryReservedEvent → Kafka Topic: inventory-reserved
    ```
 
 3. **Notification Processing:**
+
    ```
    Kafka Topic: order-created → Notification Service → Customer Notification
    Kafka Topic: inventory-reserved → Notification Service → Inventory Update Notification
@@ -196,11 +210,13 @@ d:\entertainment\kafka\
 #### 1. Kafka Connection Issues
 
 **Symptom:** Services can't connect to Kafka
+
 ```
 Error: Connection to broker failed
 ```
 
 **Solutions:**
+
 - Ensure Kafka is running: `docker-compose ps`
 - Check Kafka health: `docker-compose logs kafka`
 - Verify port 9092 is accessible: `netstat -an | findstr 9092`
@@ -208,11 +224,13 @@ Error: Connection to broker failed
 #### 2. Service Startup Issues
 
 **Symptom:** Service fails to start
+
 ```
 Error: Unable to bind to port
 ```
 
 **Solutions:**
+
 - Check if ports are in use: `netstat -an | findstr 5001`
 - Kill processes using the ports
 - Change ports in `appsettings.json` or `docker-compose.yml`
@@ -220,11 +238,13 @@ Error: Unable to bind to port
 #### 3. Docker Build Issues
 
 **Symptom:** Docker build fails
+
 ```
 Error: Unable to restore packages
 ```
 
 **Solutions:**
+
 - Clear Docker cache: `docker system prune -a`
 - Rebuild without cache: `docker-compose build --no-cache`
 - Check internet connection for package downloads
@@ -232,11 +252,13 @@ Error: Unable to restore packages
 ### Debugging Tools
 
 #### 1. Kafka UI (Recommended)
-- URL: http://localhost:8080
+
+- URL: <http://localhost:8080>
 - View topics, messages, consumer groups
 - Monitor message flow in real-time
 
 #### 2. Docker Logs
+
 ```powershell
 # View logs for specific service
 docker-compose logs order-service
@@ -248,6 +270,7 @@ docker-compose logs -f kafka
 ```
 
 #### 3. Service Health Checks
+
 ```powershell
 # Check Order Service
 Invoke-RestMethod -Uri "http://localhost:5001/api/orders" -Method GET
@@ -260,6 +283,7 @@ Invoke-RestMethod -Uri "http://localhost:5003/api/notifications/test" -Method GE
 ```
 
 #### 4. Kafka Command Line Tools
+
 ```bash
 # List topics
 docker exec kafka kafka-topics --bootstrap-server localhost:9092 --list
@@ -274,10 +298,12 @@ docker exec kafka kafka-console-producer --bootstrap-server localhost:9092 --top
 ### Performance Monitoring
 
 #### 1. Application Metrics
+
 - Monitor service logs for performance indicators
 - Use Application Insights or Prometheus for production
 
 #### 2. Kafka Metrics
+
 - Use Kafka UI for basic monitoring
 - Monitor consumer lag
 - Check message throughput
@@ -285,11 +311,13 @@ docker exec kafka kafka-console-producer --bootstrap-server localhost:9092 --top
 ### Troubleshooting Checklist
 
 ✅ **Before Starting:**
+
 - [ ] Docker Desktop is running
 - [ ] No other services using ports 5001-5003, 8080, 9092, 2181
 - [ ] Sufficient disk space (>2GB for Docker images)
 
 ✅ **If Issues Occur:**
+
 - [ ] Check Docker container status: `docker-compose ps`
 - [ ] Review service logs: `docker-compose logs [service-name]`
 - [ ] Verify Kafka topics exist in Kafka UI
@@ -297,6 +325,7 @@ docker exec kafka kafka-console-producer --bootstrap-server localhost:9092 --top
 - [ ] Check network connectivity between containers
 
 ✅ **For Development:**
+
 - [ ] .NET 8 SDK installed
 - [ ] NuGet packages restored
 - [ ] Environment variables set correctly
@@ -305,6 +334,7 @@ docker exec kafka kafka-console-producer --bootstrap-server localhost:9092 --top
 ## 🔄 Message Schemas
 
 ### OrderCreatedEvent
+
 ```json
 {
   "eventId": "guid",
@@ -329,6 +359,7 @@ docker exec kafka kafka-console-producer --bootstrap-server localhost:9092 --top
 ```
 
 ### InventoryReservedEvent
+
 ```json
 {
   "eventId": "guid",

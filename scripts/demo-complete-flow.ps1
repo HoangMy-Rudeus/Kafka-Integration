@@ -134,6 +134,10 @@ Write-Host "   3. Notification Service consumed events and sent customer notific
 Write-Host "   4. All services logged their activities (check Docker logs)" -ForegroundColor White
 
 Write-Host "`n🔍 Next steps:" -ForegroundColor Cyan
+Write-Host "   - Check Swagger UIs:" -ForegroundColor White
+Write-Host "     * Order Service: http://localhost:5001/" -ForegroundColor White
+Write-Host "     * Inventory Service: http://localhost:5002/" -ForegroundColor White
+Write-Host "     * Notification Service: http://localhost:5003/" -ForegroundColor White
 Write-Host "   - Check Kafka UI at http://localhost:8080 to see message flow" -ForegroundColor White
 Write-Host "   - View service logs: docker-compose logs [service-name]" -ForegroundColor White
 Write-Host "   - Try the other demo scripts in this folder" -ForegroundColor White

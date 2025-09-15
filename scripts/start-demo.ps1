@@ -21,9 +21,9 @@ function Show-Help {
     Write-Host ""
     Write-Host "Services:" -ForegroundColor Cyan
     Write-Host "  - Kafka UI:           http://localhost:8080"
-    Write-Host "  - Order Service:      http://localhost:5001"
-    Write-Host "  - Inventory Service:  http://localhost:5002"
-    Write-Host "  - Notification Service: http://localhost:5003"
+    Write-Host "  - Order Service:      http://localhost:5001" -ForegroundColor White
+    Write-Host "  - Inventory Service:  http://localhost:5002" -ForegroundColor White
+    Write-Host "  - Notification Service: http://localhost:5003" -ForegroundColor White
 }
 
 function Start-Infrastructure {
@@ -100,10 +100,15 @@ function Show-Status {
     docker-compose ps
     Write-Host ""
     Write-Host "🌐 Access URLs:" -ForegroundColor Cyan
-    Write-Host "  - Kafka UI:           http://localhost:8080" -ForegroundColor White
-    Write-Host "  - Order Service:      http://localhost:5001" -ForegroundColor White
-    Write-Host "  - Inventory Service:  http://localhost:5002" -ForegroundColor White
-    Write-Host "  - Notification Service: http://localhost:5003" -ForegroundColor White
+    Write-Host "  - Kafka UI:              http://localhost:8080" -ForegroundColor White
+    Write-Host "  - Order Service API:     http://localhost:5001" -ForegroundColor White
+    Write-Host "  - Inventory Service API: http://localhost:5002" -ForegroundColor White
+    Write-Host "  - Notification Service API: http://localhost:5003" -ForegroundColor White
+    Write-Host ""
+    Write-Host "📚 Swagger Documentation:" -ForegroundColor Cyan
+    Write-Host "  - Order Service:         http://localhost:5001/swagger" -ForegroundColor White
+    Write-Host "  - Inventory Service:     http://localhost:5002/swagger" -ForegroundColor White
+    Write-Host "  - Notification Service:  http://localhost:5003/swagger" -ForegroundColor White
 }
 
 # Main execution

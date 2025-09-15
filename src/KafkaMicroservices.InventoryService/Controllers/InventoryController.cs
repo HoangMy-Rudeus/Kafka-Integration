@@ -1,10 +1,15 @@
 using KafkaMicroservices.InventoryService.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace KafkaMicroservices.InventoryService.Controllers;
 
+/// <summary>
+/// API for managing inventory in the microservices demo
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class InventoryController : ControllerBase
 {
     private readonly IInventoryService _inventoryService;
@@ -16,7 +21,15 @@ public class InventoryController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// Gets all inventory items
+    /// </summary>
+    /// <returns>List of inventory items</returns>
+    /// <response code="200">Inventory retrieved successfully</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetAllInventory()
     {
         try
@@ -31,8 +44,19 @@ public class InventoryController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Gets inventory for a specific product
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <returns>Inventory details for the product</returns>
+    /// <response code="200">Inventory found</response>
+    /// <response code="404">Product not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("{productId}")]
-    public async Task<IActionResult> GetInventory(string productId)
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetInventory([Required] string productId)
     {
         try
         {

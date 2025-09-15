@@ -1,5 +1,7 @@
+using KafkaMicroservices.InventoryService.Data;
 using KafkaMicroservices.Shared.Events;
 using KafkaMicroservices.Shared.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace KafkaMicroservices.InventoryService.Services;
 
@@ -13,25 +15,12 @@ public interface IInventoryService
 public class InventoryService : IInventoryService
 {
     private readonly ILogger<InventoryService> _logger;
-    private readonly List<InventoryItem> _inventory = new();
+    private readonly InventoryDbContext _context;
 
-    public InventoryService(ILogger<InventoryService> logger)
+    public InventoryService(ILogger<InventoryService> logger, InventoryDbContext context)
     {
         _logger = logger;
-        
-        // Initialize some sample inventory
-        InitializeSampleInventory();
-    }
-
-    private void InitializeSampleInventory()
-    {
-        _inventory.AddRange(new[]
-        {
-            new InventoryItem { ProductId = "PROD001", ProductName = "Laptop", AvailableQuantity = 50 },
-            new InventoryItem { ProductId = "PROD002", ProductName = "Mouse", AvailableQuantity = 100 },
-            new InventoryItem { ProductId = "PROD003", ProductName = "Keyboard", AvailableQuantity = 75 },
-            new InventoryItem { ProductId = "PROD004", ProductName = "Monitor", AvailableQuantity = 30 }
-        });
+        _context = context;
     }
 
     public async Task<bool> ReserveInventoryAsync(Guid orderId, List<OrderItem> items)
@@ -44,7 +33,9 @@ public class InventoryService : IInventoryService
         // Check if all items can be reserved
         foreach (var orderItem in items)
         {
-            var inventoryItem = _inventory.FirstOrDefault(i => i.ProductId == orderItem.ProductId);
+            var inventoryItem = await _context.InventoryItems
+                .FirstOrDefaultAsync(i => i.ProductId == orderItem.ProductId);
+            
             if (inventoryItem == null)
             {
                 _logger.LogWarning("Product {ProductId} not found in inventory", orderItem.ProductId);
@@ -54,7 +45,7 @@ public class InventoryService : IInventoryService
 
             if (inventoryItem.AvailableQuantity < orderItem.Quantity)
             {
-                _logger.LogWarning("Insufficient inventory for product {ProductId}. Available: {Available}, Requested: {Requested}", 
+                _logger.LogWarning("Insufficient inventory for product {ProductId}. Available: {Available}, Requested: {Requested}",
                     orderItem.ProductId, inventoryItem.AvailableQuantity, orderItem.Quantity);
                 canReserveAll = false;
                 break;
@@ -65,14 +56,16 @@ public class InventoryService : IInventoryService
 
         if (canReserveAll)
         {
-            // Reserve the inventory
+            // Apply all reservations
             foreach (var (item, quantity) in reservations)
             {
                 item.AvailableQuantity -= quantity;
                 item.ReservedQuantity += quantity;
-                _logger.LogInformation("Reserved {Quantity} of {ProductId}", quantity, item.ProductId);
+                _logger.LogInformation("Reserved {Quantity} units of {ProductId} for order {OrderId}",
+                    quantity, item.ProductId, orderId);
             }
-            
+
+            await _context.SaveChangesAsync();
             _logger.LogInformation("Successfully reserved inventory for order {OrderId}", orderId);
             return true;
         }
@@ -83,20 +76,12 @@ public class InventoryService : IInventoryService
 
     public async Task<InventoryItem?> GetInventoryAsync(string productId)
     {
-        var item = _inventory.FirstOrDefault(i => i.ProductId == productId);
-        return await Task.FromResult(item);
+        return await _context.InventoryItems
+            .FirstOrDefaultAsync(i => i.ProductId == productId);
     }
 
     public async Task<IEnumerable<InventoryItem>> GetAllInventoryAsync()
     {
-        return await Task.FromResult(_inventory.AsEnumerable());
+        return await _context.InventoryItems.ToListAsync();
     }
-}
-
-public class InventoryItem
-{
-    public string ProductId { get; set; } = string.Empty;
-    public string ProductName { get; set; } = string.Empty;
-    public int AvailableQuantity { get; set; }
-    public int ReservedQuantity { get; set; }
 }

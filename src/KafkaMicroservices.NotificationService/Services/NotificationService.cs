@@ -1,3 +1,7 @@
+using KafkaMicroservices.NotificationService.Data;
+using KafkaMicroservices.Shared.Models;
+using Microsoft.EntityFrameworkCore;
+
 namespace KafkaMicroservices.NotificationService.Services;
 
 public interface INotificationService
@@ -10,11 +14,12 @@ public interface INotificationService
 public class NotificationService : INotificationService
 {
     private readonly ILogger<NotificationService> _logger;
-    private readonly List<Notification> _notifications = new(); // In-memory storage for demo
+    private readonly NotificationDbContext _context;
 
-    public NotificationService(ILogger<NotificationService> logger)
+    public NotificationService(ILogger<NotificationService> logger, NotificationDbContext context)
     {
         _logger = logger;
+        _context = context;
     }
 
     public async Task SendOrderConfirmationAsync(string customerId, Guid orderId, decimal totalAmount)
@@ -27,11 +32,11 @@ public class NotificationService : INotificationService
             CustomerId = customerId,
             Message = message,
             Type = "OrderConfirmation",
-            Timestamp = DateTime.UtcNow,
-            IsRead = false
+            Timestamp = DateTime.UtcNow
         };
 
-        _notifications.Add(notification);
+        _context.Notifications.Add(notification);
+        await _context.SaveChangesAsync();
         
         _logger.LogInformation("Order confirmation notification sent to customer {CustomerId} for order {OrderId}", 
             customerId, orderId);
@@ -50,41 +55,31 @@ public class NotificationService : INotificationService
             CustomerId = customerId,
             Message = message,
             Type = "InventoryReservation",
-            Timestamp = DateTime.UtcNow,
-            IsRead = false
+            Timestamp = DateTime.UtcNow
         };
 
-        _notifications.Add(notification);
+        _context.Notifications.Add(notification);
+        await _context.SaveChangesAsync();
         
         _logger.LogInformation("Inventory reservation notification sent to customer {CustomerId} for order {OrderId}", 
             customerId, orderId);
 
+        // Simulate sending notification
         await SimulateSendingNotification(notification);
     }
 
     public async Task<IEnumerable<Notification>> GetNotificationsAsync(string customerId)
     {
-        var customerNotifications = _notifications
+        return await _context.Notifications
             .Where(n => n.CustomerId == customerId)
-            .OrderByDescending(n => n.Timestamp);
-            
-        return await Task.FromResult(customerNotifications);
+            .OrderByDescending(n => n.Timestamp)
+            .ToListAsync();
     }
 
     private async Task SimulateSendingNotification(Notification notification)
     {
-        // Simulate async notification sending (email, SMS, push notification, etc.)
-        await Task.Delay(100);
-        _logger.LogInformation("Notification sent: {Type} to {CustomerId}", notification.Type, notification.CustomerId);
+        // Simulate external service call (email, SMS, push notification)
+        await Task.Delay(100); // Simulate network call
+        _logger.LogInformation("Notification sent: {Message}", notification.Message);
     }
-}
-
-public class Notification
-{
-    public Guid Id { get; set; }
-    public string CustomerId { get; set; } = string.Empty;
-    public string Message { get; set; } = string.Empty;
-    public string Type { get; set; } = string.Empty;
-    public DateTime Timestamp { get; set; }
-    public bool IsRead { get; set; }
 }
